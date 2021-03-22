@@ -3,8 +3,10 @@
 """分割检的封装
 """
 
-import numpy as np
 from functools import wraps
+
+import numpy as np
+
 
 def nms_test(bounding_boxes, confidence_score, threshold):
     picked_boxes = []
@@ -78,7 +80,6 @@ class SplitDetector():
                 left = max(0, int(split_width * c - split_width * 0.2))
                 right = min(original_width, int(left + split_width * 1.4))
                 sub_image = image[top:bottom, left:right]
-                print('sub img shape {}'.format(sub_image.shape))
                 self.sub_images.append(sub_image)
                 self.move_pads.append([left, top])
                 self.sub_sizes.append([bottom - top, right - left])
@@ -143,7 +144,6 @@ class SplitDetector():
         for index, (output, move_pad) in enumerate(zip(outputs, move_pads)):
             # get output data
             data = output['data']
-
             # filter edge objs
             pass_side = []
             if index < self.split_width_num:
@@ -155,17 +155,12 @@ class SplitDetector():
             if (index + 1) % self.split_height_num == 0:
                 pass_side.append('right')
             data = self.filter_edge(data, self.sub_sizes[index], pass_side=pass_side)
-
             # move pixcel
             data = self.add_movepad(data, move_pad)
-
-            # print(f'[DEBUG] {index} data: ', [len(data[k]) for k in data.keys()])
-
             for k in data.keys():
                 if k not in merged_datas.keys():
                     merged_datas[k] = []
                 merged_datas[k] += data[k]
-
         # nms
         for k in merged_datas.keys():
             temp_bboxes = [b[:4] for b in merged_datas[k]]
@@ -207,4 +202,3 @@ def SPLITINFERENCE(split_width=2, split_height=2):
         return wrapper
 
     return decorate
-

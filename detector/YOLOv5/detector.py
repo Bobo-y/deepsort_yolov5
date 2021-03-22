@@ -1,14 +1,13 @@
-import torch
-import numpy as np
 from .models.experimental import *
 from .utils.datasets import *
 from .utils.general import *
-from .utils.torch_utils import *
 from .utils.split_detector import SPLITINFERENCE
+from .utils.torch_utils import *
 
 
 class YOLOv5(object):
-    def __init__(self, pt_path, namesfile, img_size, conf_thres=0.4, iou_thres=0.3, classes=0, agnostic_nms=False, xcycwh=True, device=0):
+    def __init__(self, pt_path, namesfile, img_size, conf_thres=0.4, iou_thres=0.3, classes=0, agnostic_nms=False,
+                 xcycwh=True, device=0):
         self.pt_path = pt_path
         self.img_size = img_size
         self.device = torch.device('cuda:{}'.format(device))
@@ -40,10 +39,19 @@ class YOLOv5(object):
             for key in output.keys():
                 values = output[key]
                 for value in values:
-                    bboxes.append(value[0:4])
+                    x_min = value[0]
+                    y_min = value[1]
+                    x_max = value[2]
+                    y_max = value[3]
+                    w = x_max - x_min
+                    h = y_max - y_min
+                    if self.xcycwh:
+                        bboxes.append([x_min + w / 2, y_min + h / 2, w, h])
+                    else:
+                        bboxes.append(value[:4])
                     scores.append(value[4])
                     ids.append(key)
-        return np.asarray(bboxes),np.asarray(scores),np.asarray(ids)
+        return np.asarray(bboxes), np.asarray(scores), np.asarray(ids)
 
     def detect_image(self, image):
         bboxes = []
@@ -59,7 +67,8 @@ class YOLOv5(object):
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
         pred = self.model(img, augment=False)[0]
-        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=self.classes,  agnostic=self.agnostic_nms)
+        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=self.classes,
+                                   agnostic=self.agnostic_nms)
         for i, det in enumerate(pred):
             if det is not None and len(det):
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0s.shape).round()
@@ -74,7 +83,7 @@ class YOLOv5(object):
                     h = y_max - y_min
                     if self.xcycwh:
                         # center coord, w, h
-                        bboxes.append([x_min + w /2, y_min + h /2, w, h])
+                        bboxes.append([x_min + w / 2, y_min + h / 2, w, h])
                     else:
                         bboxes.append([x_min, y_min, x_max, y_max])
                     scores.append(score)
@@ -82,7 +91,7 @@ class YOLOv5(object):
         return np.asarray(bboxes), np.asarray(scores), np.asarray(ids)
 
     @SPLITINFERENCE(split_width=2, split_height=1)
-    def detect_img_split(self, image=''):
+    def detect_img_split(self, image='', **kwargs):
         outputs_json = {}
         im0s = image
         img = letterbox(im0s, new_shape=self.img_size)[0]
@@ -94,7 +103,8 @@ class YOLOv5(object):
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
         pred = self.model(img, augment=False)[0]
-        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=self.classes,  agnostic=self.agnostic_nms)
+        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=self.classes,
+                                   agnostic=self.agnostic_nms)
         for i, det in enumerate(pred):
             if det is not None and len(det):
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0s.shape).round()
