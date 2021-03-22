@@ -1,0 +1,7 @@
+YOLOV5:
+  WEIGHT: "./detector/YOLOv5/weights/yolov5.pth"
+  CLASS_NAMES: "./detector/YOLOv5/data/custom.names"
+  IMAGE_SIZE: 640
+  SCORE_THRESH: 0.5
+  NMS_THRESH: 0.4
+  DEVICE: 0
